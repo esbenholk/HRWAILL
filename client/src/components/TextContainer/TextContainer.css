@@ -1,16 +1,13 @@
 .textContainer {
   display: flex;
   flex-direction: column;
-  margin-left: 100px;
-  color: white;
-  height: 60%;
+  max-width: 200px;
   justify-content: space-between;
 }
 
-.activeContainer {
-  display: flex;
-  align-items: center;
-  margin-bottom: 50%;
+.users-headline {
+  border-bottom: 2px solid var(--mainColor);
+  border-top: 2px solid var(--mainColor);
 }
 
 .activeItem {
@@ -18,16 +15,10 @@
   align-items: center;
 }
 
-.activeContainer img {
+.activeItem img {
   padding-left: 10px;
 }
 
-.textContainer h1 {
-  margin-bottom: 0px;
-}
-
-@media (min-width: 320px) and (max-width: 1200px) {
-  .textContainer {
-    display: none;
-  }
+.activeItem p {
+  color: var(--newColor);
 }

@@ -1,17 +1,23 @@
 .form {
   display: flex;
-  border-top: 2px solid #D3D3D3;
+  border: 2px solid var(--mainColor);
+  display: flex;
 }
 
 .input {
   border: none;
+  min-width: 150px;
+  background-color: rgba(0, 0, 0, 0);
+  border-bottom: 2px var(--mainColor) solid;
   border-radius: 0;
-  padding: 5%;
-  width: 80%;
-  font-size: 1.2em;
+  padding: 10px;
+  font-size: 15px;
+  flex-grow: 5;
 }
 
-input:focus, textarea:focus, select:focus{
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
 }
 
@@ -19,9 +25,10 @@ input:focus, textarea:focus, select:focus{
   color: #fff !important;
   text-transform: uppercase;
   text-decoration: none;
-  background: #2979FF;
-  padding: 20px;
+  background: var(--mainColor);
+  font-family: "sinistre";
+  padding: 5px;
   display: inline-block;
   border: none;
-  width: 20%;
+  width: auto;
 }
