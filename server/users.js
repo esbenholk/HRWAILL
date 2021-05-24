@@ -2,7 +2,7 @@ const users = [];
 
 const addUser = ({ id, name }) => {
   if (name) {
-    name = name.trim().toLowerCase();
+    name = name.trim();
   }
 
   const existingUser = users.find((user) => user.name === name);
@@ -26,14 +26,6 @@ const removeUser = (id) => {
 const getUser = (id) => users.find((user) => user.id === id);
 
 const getUsersInRoom = (room, name) => {
-  // const otherUsers = [];
-
-  // for (let index = 0; index < users.length; index++) {
-  //   if (users[index].name != name) {
-  //     otherUsers.push(users[index]);
-  //   }
-  // }
-  // return otherUsers;
   return users;
 };
 

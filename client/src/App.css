@@ -6,6 +6,13 @@
     url("./fonts/sinistre.woff") format("woff");
 }
 
+#root {
+  z-index: 99999;
+}
+iframe {
+  z-index: 0;
+  display: none;
+}
 :root {
   --mainColor: black;
   --detailColor: #00ff00;

@@ -32,10 +32,10 @@ export default function VideoChat({ users, socket, id, myName }) {
     socket.on("callUser", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
-      setName(myName);
+      setName(data.name);
       setCallerSignal(data.signal);
     });
-  }, [myName, socket]);
+  }, [myName, name, socket]);
 
   const callUser = (id) => {
     const peer = new Peer({
@@ -48,7 +48,7 @@ export default function VideoChat({ users, socket, id, myName }) {
         userToCall: id,
         signalData: data,
         from: me,
-        name: name,
+        name: myName,
       });
     });
     peer.on("stream", (stream) => {
@@ -70,6 +70,7 @@ export default function VideoChat({ users, socket, id, myName }) {
       trickle: false,
       stream: stream,
     });
+
     peer.on("signal", (data) => {
       socket.emit("answerCall", { signal: data, to: caller });
     });
@@ -94,6 +95,7 @@ export default function VideoChat({ users, socket, id, myName }) {
     connectionRef.current.destroy();
   };
 
+  ////figure out way of opening peer.connection so that we can call each other again!!!!!
   return (
     <>
       <div className="container-ish">
@@ -106,21 +108,17 @@ export default function VideoChat({ users, socket, id, myName }) {
                   <p>{user.name}</p>
                   <img alt="Online Icon" src={onlineIcon} />
 
-                  {!isCalling ? (
-                    <button
-                      color="primary"
-                      aria-label="call"
-                      className="dial-up-button"
-                      onClick={() => {
-                        callUser(user.id);
-                        setIsCalling(true);
-                      }}
-                    >
-                      call user
-                    </button>
-                  ) : (
-                    <p>...calling</p>
-                  )}
+                  <button
+                    color="primary"
+                    aria-label="call"
+                    className="dial-up-button"
+                    onClick={() => {
+                      callUser(user.id);
+                      setIsCalling(true);
+                    }}
+                  >
+                    call user
+                  </button>
                 </div>
               ) : null
             )}
@@ -139,6 +137,9 @@ export default function VideoChat({ users, socket, id, myName }) {
                 autoPlay
                 controls
                 style={{ width: "300px" }}
+                onClick={() => {
+                  console.log("video press");
+                }}
               />
             </div>
           )}

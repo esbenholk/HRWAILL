@@ -8,7 +8,7 @@ const Message = ({ message: { text, user }, name }) => {
   let trimmedName;
 
   if (name) {
-    trimmedName = name.trim().toLowerCase();
+    trimmedName = name.trim();
   }
 
   if (user === trimmedName) {

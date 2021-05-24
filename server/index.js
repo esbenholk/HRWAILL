@@ -2,6 +2,7 @@ const http = require("http");
 const express = require("express");
 const socketio = require("socket.io");
 const cors = require("cors");
+const { cloudinary } = require("./utils/cloudinary");
 
 const { addUser, removeUser, getUser, getUsersInRoom } = require("./users");
 
@@ -20,6 +21,8 @@ const io = require("socket.io")(server, {
 
 app.use(cors());
 app.use(router);
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 const users = {};
 
@@ -71,7 +74,9 @@ io.on("connect", (socket) => {
     const user = getUser(socket.id);
     console.log(socket.id);
 
-    io.to(room).emit("message", { user: user.name, text: message });
+    if (user) {
+      io.to(room).emit("message", { user: user.name, text: message });
+    }
 
     callback();
   });
@@ -88,9 +93,6 @@ io.on("connect", (socket) => {
       });
       io.to(room).emit("roomData", { room: room, users: getUsersInRoom(room) });
     }
-  });
-
-  socket.on("disconnect", () => {
     socket.broadcast.emit("callEnded");
   });
 
@@ -103,9 +105,62 @@ io.on("connect", (socket) => {
   });
 
   socket.on("answerCall", (data) => {
-    console.log("answers call from user", data);
+    console.log("answers call from user", data.images);
     io.to(data.to).emit("callAccepted", data.signal);
   });
+
+  socket.on("uploadImage", (data) => {
+    console.log("in socket", data.data.images.length);
+
+    io.to(room).emit("message", {
+      user: "Hrwail Archive",
+      text: `thats a beautiful jpg, thank u`,
+      images: data.data.images,
+    });
+  });
+});
+
+app.get("/", (req, res) => {
+  res.send(
+    "hello world, i am an autonomous server. I was sneazed into existence. call me..."
+  );
+});
+
+app.get("/api/getallimages", async (req, res) => {
+  try {
+    const { resources } = await cloudinary.search
+      .expression("folder:contentRedistribution")
+      .sort_by("public_id", "desc")
+      .max_results(99999)
+      .execute();
+
+    const publicUrls = await resources.map((file) => file.url);
+
+    console.log("first image load", publicUrls.length);
+
+    res.json({ images: publicUrls });
+  } catch (error) {
+    console.error("there is error", error);
+    res.status(500).json({ err: "there is an error" });
+  }
+});
+
+app.post("/api/upload", async (req, res) => {
+  try {
+    const fileStr = req.body.data;
+    const uploadRes = await cloudinary.uploader.upload(fileStr, {
+      upload_preset: "contentRedistribution",
+    });
+
+    ///revert back to only sending
+
+    console.log("after upload", uploadRes.url);
+
+    res.json({ newImage: uploadRes.url });
+  } catch (error) {
+    console.error("there is error", error);
+    res.status(500).json({ err: "there is an error" });
+  }
 });
 
 server.listen(process.env.PORT || 5000, () =>

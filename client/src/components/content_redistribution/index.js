@@ -3,6 +3,8 @@ import ContentRedistributionCanvas from "./canvas";
 
 import SongPlayer from "./MusicPlayer";
 
+const URL = "https://hok-studio-backend.herokuapp.com";
+
 export default function ContentRedistribution(props) {
   const [imageUrls, setImageUrls] = useState([]);
   const [hasNewImage, setHasNewImage] = useState(true);
@@ -11,9 +13,7 @@ export default function ContentRedistribution(props) {
   const loadImages = async () => {
     console.log("loading images");
     try {
-      const res = await fetch(
-        "https://hok-studio-backend.herokuapp.com/api/getallimages"
-      );
+      const res = await fetch("/api/getallimages");
 
       const data = await res.json();
       setImageUrls(data.images);
@@ -48,7 +48,7 @@ export default function ContentRedistribution(props) {
 
   const uploadImage = async (base64EncodedImage) => {
     try {
-      await fetch("https://hok-studio-backend.herokuapp.com/api/upload", {
+      await fetch("/api/upload", {
         method: "POST",
         body: JSON.stringify({ data: base64EncodedImage }),
         headers: { "Content-type": "application/json" },
@@ -61,6 +61,8 @@ export default function ContentRedistribution(props) {
   };
 
   const stream = props.stream;
+
+  console.log("renders canvas container");
 
   return (
     <div className="content-container">

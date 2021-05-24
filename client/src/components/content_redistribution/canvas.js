@@ -182,9 +182,7 @@ function Scene(props) {
 }
 
 export default function ContentRedistributionCanvas(imageUrls, stream) {
-  // console.log("in canvas", imageUrls.stream);
   console.log("renders canvas");
-
   return (
     <>
       <Canvas
