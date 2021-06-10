@@ -10,17 +10,21 @@ import {
   softShadows,
   Loader,
   Environment,
-  Sky,
+  useGLTF,
   MeshWobbleMaterial,
 } from "@react-three/drei";
+
 import { useReflector } from "../functions/use-reflector";
 import usePostprocessing from "../functions/use-postprocessing";
+
+import Stacy from "./stacy";
 
 import {
   TextureLoader,
   WebGLCubeRenderTarget,
   AudioListener,
   AudioLoader,
+  Mesh,
 } from "three";
 
 import Stream from "../Broadcast/Stream";
@@ -74,13 +78,13 @@ function Cubes({ imageUrls, material }) {
     >
       <boxBufferGeometry attach="geometry" args={[5, 5, 5]} color="white" />
       <Suspense fallback={null}>
-        <ImageTextureMaterial imageUrl={imageUrl} material={material} />
+        <ImageTextureMaterial imageUrl={imageUrl} />
       </Suspense>
     </mesh>
   ));
 }
 
-const ImageTextureMaterial = (imageUrl, material) => {
+const ImageTextureMaterial = (imageUrl) => {
   const texture = useLoader(TextureLoader, imageUrl.imageUrl);
 
   return (
@@ -89,7 +93,6 @@ const ImageTextureMaterial = (imageUrl, material) => {
       roughness={1}
       color="white"
       map={texture}
-      material={material}
     />
   );
 };
@@ -264,6 +267,34 @@ function Boxes(props) {
   );
 }
 
+const Model = () => {
+  const gltf = useGLTF("slum_house/scene.gltf");
+  const ref = useRef();
+
+  useEffect(() => {
+    if (gltf) {
+      let model = gltf.scene;
+      model.scale.set(7, 7, 7);
+      model.traverse((children) => {
+        if (children instanceof Mesh) {
+          // maps mirrorMaterial onto all meshes in obj file.
+          children.castShadow = true;
+          children.receiveShadow = true;
+          children.geometry.computeVertexNormals();
+          // children.material = mirrorMaterial;
+        }
+      });
+    }
+  }, [gltf]);
+
+  return gltf ? (
+    <group position={[70, -2.3, 70]}>
+      <primitive ref={ref} object={gltf.scene} />
+      <Stacy pose={1} position={[0, 0, 0]} />
+    </group>
+  ) : null;
+};
+
 export default class ContentRedistributionCanvas extends React.Component {
   constructor(props) {
     super(props);
@@ -306,7 +337,7 @@ export default class ContentRedistributionCanvas extends React.Component {
           id="canvas"
           colorManagement
           shadowMap={true}
-          camera={{ position: [0, 0, 10], far: 100, near: 0.1, fov: 60 }}
+          camera={{ position: [0, 0, 10], far: 170, near: 0.1, fov: 100 }}
           resize={{ debounce: { scroll: 0, resize: 0 } }}
           invalidateFrameloop={true}
           gl={{
@@ -328,23 +359,13 @@ export default class ContentRedistributionCanvas extends React.Component {
 
           <Boxes props={this.state.imageUrls} />
 
-          <fogExp2 attach="fog" args={[0xbffffd, 0.049]} />
-
           <ambientLight intensity={0.3} />
 
           <Suspense fallback={null}>
             <Sound url="https://res.cloudinary.com/www-houseofkilling-com/video/upload/v1620900008/sounds/AliveForever_clhtnw.mp3" />
-
-            <RSphere position={[10, 0, 10]} args={[7, 32, 32]} />
-
-            <RSphere position={[-70, 5, 20]} args={[3, 32, 32]} />
-
-            <RSphere position={[50, 10, -40]} args={[10, 32, 32]} />
-
-            <RSphere position={[0, 0, 0]} args={[50, 32, 32]} />
           </Suspense>
 
-          <Environment files="vr_landscape.hdr" background={false} />
+          <Environment files="vr_landscape.hdr" background={true} />
 
           <Fireflies count={500} position={[0, 0, 0]} />
 
@@ -356,19 +377,65 @@ export default class ContentRedistributionCanvas extends React.Component {
             <Control />
           </Physics>
 
+          <mesh
+            position={[0, 0, 40]}
+            rotation={[0, 0, Math.PI / 3]}
+            castShadow
+            receiveShadow
+          >
+            <boxBufferGeometry
+              attach="geometry"
+              args={[21, 21, 3]}
+              color="white"
+            />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+          </mesh>
+
+          <mesh
+            position={[-70, 0, 40]}
+            rotation={[0, Math.PI / 2, Math.PI / 3]}
+            castShadow
+            receiveShadow
+          >
+            <boxBufferGeometry
+              attach="geometry"
+              args={[21, 21, 3]}
+              color="white"
+            />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+          </mesh>
+
+          <mesh
+            position={[80, 30, 100]}
+            rotation={[0, Math.PI / 2, Math.PI / 3]}
+            castShadow
+            receiveShadow
+          >
+            <boxBufferGeometry
+              attach="geometry"
+              args={[50, 100, 3]}
+              color="white"
+            />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+          </mesh>
           <Lights />
 
-          {this.state.hasStream && <StreamBoxes />}
+          <Model />
 
-          <Sky
-            distance={450000} // Camera distance (default=450000)
-            sunPosition={[0, 10, 0]} // Sun position normal (defaults to inclination and azimuth if not set)
-            inclination={1} // Sun elevation angle from 0 to 1 (default=0)
-            azimuth={0.25}
-          />
+          {this.state.hasStream && <StreamBoxes />}
         </Canvas>
         <Loader dataInterpolation={(p) => `waking up ${p.toFixed(5)}%`} />
       </>
     );
   }
 }
+
+/* <fogExp2 attach="fog" args={[0xbffffd, 0.049]} /> */
+
+// <RSphere position={[10, 0, 10]} args={[7, 32, 32]} />
+
+// <RSphere position={[-70, 5, 20]} args={[3, 32, 32]} />
+
+// <RSphere position={[50, 10, -40]} args={[10, 32, 32]} />
+
+// <RSphere position={[0, 0, 0]} args={[50, 32, 32]} />

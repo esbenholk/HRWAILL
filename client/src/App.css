@@ -78,6 +78,7 @@ video {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+
   width: 33%;
   max-width: 400px;
   min-width: 250px;
@@ -91,9 +92,11 @@ video {
 .messageText {
   width: auto;
   min-width: 70px;
+  max-width: 100%;
   letter-spacing: 0;
   float: left;
   word-wrap: break-word;
+  white-space: pre-wrap;
   font-family: "sinistre";
   text-align: right;
   border-top: 2px solid var(--mainColor);
@@ -121,6 +124,7 @@ video {
 
 .messageContainer {
   width: auto;
+  max-width: 400px;
   display: inline-flex;
   flex-direction: column;
 }
