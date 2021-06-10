@@ -12,7 +12,7 @@ function Messages({ messages, name }) {
   useEffect(scrollToBottom, [messages]);
 
   return (
-    <div className="messages">
+    <div className="messages" style={{ pointerEvents: "auto" }}>
       {messages.map((message, i) => (
         <div key={i}>
           <Message message={message} name={name} />

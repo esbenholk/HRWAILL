@@ -92,13 +92,13 @@ export default function VideoChat({ users, socket, id, myName }) {
   const leaveCall = () => {
     setCallEnded(true);
     setIsCalling(false);
-    connectionRef.current.destroy();
+    connectionRef.current.removeStream(stream);
   };
 
   ////figure out way of opening peer.connection so that we can call each other again!!!!!
   return (
     <>
-      <div className="container-ish">
+      <div className="container-ish" style={{ pointerEvents: "auto" }}>
         {users ? (
           <div>
             <p className="users-headline">Online users</p>
@@ -126,7 +126,10 @@ export default function VideoChat({ users, socket, id, myName }) {
         ) : null}
       </div>
 
-      <div className="video-container container-ish">
+      <div
+        className="video-container container-ish"
+        style={{ pointerEvents: "auto" }}
+      >
         <div className="video">
           {stream && (
             <div>
@@ -157,17 +160,17 @@ export default function VideoChat({ users, socket, id, myName }) {
             </div>
           ) : null}
         </div>
-      </div>
-      <div className="call-button">
-        {callAccepted && !callEnded ? (
-          <button variant="contained" color="secondary" onClick={leaveCall}>
-            End Call
-          </button>
-        ) : null}
+        <div className="call-button">
+          {callAccepted && !callEnded ? (
+            <button variant="contained" color="secondary" onClick={leaveCall}>
+              End Call
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {receivingCall && !callAccepted ? (
-        <div className="caller-alert">
+        <div className="caller-alert" style={{ pointerEvents: "auto" }}>
           <p>
             hej {myName}, there is another user who wants to contact you!{" "}
             <br></br>Their name is {name}

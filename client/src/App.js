@@ -1,15 +1,17 @@
 import React, { Suspense, useRef, useState } from "react";
 
 import Chat from "./components/Chat/Chat";
-import ContentRedistribution from "./components/content_redistribution/indexC";
+import ContentRedistribution from "./components/content_redistribution";
 
 import "./App.css";
 
 import { BrowserRouter as Router, Route } from "react-router-dom";
 
+import Broadcast from "./components/Broadcast/Broadcast.js";
+
 import io from "socket.io-client";
 
-const ENDPOINT = "localhost:5000";
+const ENDPOINT = "https://stayvirtual-chat-backend.herokuapp.com/";
 
 const socket = io(ENDPOINT);
 
@@ -40,7 +42,7 @@ const App = () => {
       <Route path="/" exact>
         {!loggedIn && (
           <>
-            <div className="outer-container" style={{ zIndex: "9" }}>
+            <div className="outer-container" style={{ zIndex: "1" }}>
               <div className="circletype-container">
                 <p id="circletype">
                   www.stayvirtual.online** softly introduces H r w a i l Archive
@@ -83,6 +85,10 @@ const App = () => {
           />
           <Chat socket={socket} loggedIn={loggedIn} name={name} myID={myID} />
         </Suspense>
+      </Route>
+
+      <Route path="/broadcast" exact>
+        <Broadcast socket={socket} />
       </Route>
     </Router>
   );

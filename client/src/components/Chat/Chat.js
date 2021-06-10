@@ -1,6 +1,13 @@
-import React, { useState, useEffect, Suspense, lazy, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
-import VideoChat from "../TextContainer/VideoChat.js";
+// import VideoChat from "../TextContainer/VideoChat.js";
+// <VideoChat
+// users={users}
+// socket={socket}
+// id={props.myID}
+// myName={props.name}
+// />
+import TextContainer from "../TextContainer/TextContainer.js";
 import Messages from "../Messages/Messages";
 import Input from "../Input/Input";
 
@@ -23,7 +30,7 @@ const Chat = (props) => {
         setName(username);
       });
     }
-  }, [props.loggedIn]);
+  }, [props.loggedIn, socket]);
 
   const sendMessage = (event) => {
     event.preventDefault();
@@ -42,12 +49,13 @@ const Chat = (props) => {
         right: "0",
         left: "0",
         zIndex: "0",
+        pointerEvents: "none",
       }}
     >
       {props.loggedIn && (
         <>
           <div
-            className="chatContainer container-ish"
+            className="chatContainer containerframe"
             style={{ pointerEvents: "auto" }}
           >
             <Messages messages={messages} name={name} />
@@ -58,12 +66,7 @@ const Chat = (props) => {
             />
           </div>
 
-          <VideoChat
-            users={users}
-            socket={socket}
-            id={props.myID}
-            myName={props.name}
-          />
+          <TextContainer users={users} />
         </>
       )}
     </div>

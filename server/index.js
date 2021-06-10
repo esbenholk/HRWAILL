@@ -1,12 +1,27 @@
 const http = require("http");
 const express = require("express");
-const socketio = require("socket.io");
 const cors = require("cors");
 const { cloudinary } = require("./utils/cloudinary");
+const webrtc = require("wrtc");
+const bodyParser = require("body-parser");
+var path = require("path");
 
 const { addUser, removeUser, getUser, getUsersInRoom } = require("./users");
 
-const router = require("./router");
+const stun = require("stun");
+
+stun.request("stun.l.google.com:19302", (err, res) => {
+  if (err) {
+    console.error("stun doesnt work", err);
+  } else {
+    const { address } = res.getXorAddress();
+    console.log("your ip", address);
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+
+let senderStream;
 
 const room = "stayvirtual.online";
 
@@ -14,17 +29,17 @@ const app = express();
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "localhost:5000",
     methods: ["GET", "POST"],
   },
 });
 
 app.use(cors());
-app.use(router);
+// app.use(router);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-const users = {};
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 io.on("connect", (socket) => {
   socket.on("join", ({ name }, callback) => {
@@ -84,8 +99,6 @@ io.on("connect", (socket) => {
   socket.on("disconnect", () => {
     const user = removeUser(socket.id);
 
-    console.log("disconnedting", user);
-
     if (user) {
       io.to(room).emit("message", {
         user: "Hrwail Archive",
@@ -110,23 +123,26 @@ io.on("connect", (socket) => {
   });
 
   socket.on("uploadImage", (data) => {
-    console.log("in socket", data.data.images.length);
+    console.log("image in socket", data.data.newImage);
 
     io.to(room).emit("message", {
       user: "Hrwail Archive",
       text: `thats a beautiful jpg, thank u`,
-      images: data.data.images,
+      newImage: data.data.newImage,
     });
   });
 });
 
-app.get("/", (req, res) => {
-  res.send(
-    "hello world, i am an autonomous server. I was sneazed into existence. call me..."
-  );
-});
+// app.get("/", (req, res) => {
+//   res.send(
+//     "hello world, i am an autonomous server. I was sneazed into existence. call me..."
+//   );
+// });
+
+app.use(express.static(path.join(__dirname, "build")));
 
 app.get("/api/getallimages", async (req, res) => {
+  console.log("gts images");
   try {
     const { resources } = await cloudinary.search
       .expression("folder:contentRedistribution")
@@ -151,11 +167,6 @@ app.post("/api/upload", async (req, res) => {
     const uploadRes = await cloudinary.uploader.upload(fileStr, {
       upload_preset: "contentRedistribution",
     });
-
-    ///revert back to only sending
-
-    console.log("after upload", uploadRes.url);
-
     res.json({ newImage: uploadRes.url });
   } catch (error) {
     console.error("there is error", error);
@@ -163,6 +174,76 @@ app.post("/api/upload", async (req, res) => {
   }
 });
 
-server.listen(process.env.PORT || 5000, () =>
-  console.log(`Server has started.`)
-);
+app.post("/api/consumer", async ({ body }, res) => {
+  console.log("CONSUMER CALLS", senderStream);
+
+  if (senderStream) {
+    const peer = new webrtc.RTCPeerConnection({
+      iceServers: [
+        {
+          urls: "stun:stun.l.google.com:19302",
+        },
+        // {
+        //   url: "turn:192.158.29.39:3478?transport=udp",
+        //   credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
+        //   username: "28224511:1379330808",
+        // },
+      ],
+    });
+    const desc = new webrtc.RTCSessionDescription(body.sdp);
+    await peer.setRemoteDescription(desc);
+    senderStream
+      .getTracks()
+      .forEach((track) => peer.addTrack(track, senderStream));
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+    const payload = {
+      sdp: peer.localDescription,
+    };
+    console.log("CONSUMER SENDS", payload);
+
+    res.json(payload);
+  } else {
+    res.status(500).json({ err: "there is an error" });
+  }
+});
+
+app.post("/api/broadcast", async ({ body }, res) => {
+  const peer = new webrtc.RTCPeerConnection({
+    iceServers: [
+      {
+        urls: "stun:stun.l.google.com:19302",
+      },
+      // {
+      //   url: "turn:192.158.29.39:3478?transport=udp",
+      //   credential: "JZEOEt2V3Qb0y27GRntt2u2PAYA=",
+      //   username: "28224511:1379330808",
+      // },
+    ],
+  });
+  peer.ontrack = (e) => handleTrackEvent(e, peer);
+  const desc = new webrtc.RTCSessionDescription(body.sdp);
+  await peer.setRemoteDescription(desc);
+  const answer = await peer.createAnswer();
+  await peer.setLocalDescription(answer);
+  const payload = {
+    sdp: peer.localDescription,
+  };
+
+  res.json(payload);
+});
+app.post("/api/endbroadcast", async ({ body }, res) => {
+  senderStream = undefined;
+});
+
+app.get("/*", (req, res) => {
+  console.log("sends build folder");
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
+function handleTrackEvent(e, peer) {
+  senderStream = e.streams[0];
+  console.log("BROADCASTER CREATES", senderStream);
+}
+
+server.listen(PORT, () => console.log(`Server has started.`, PORT));

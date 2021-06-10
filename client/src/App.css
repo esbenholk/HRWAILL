@@ -5,14 +5,17 @@
   src: url("./fonts/sinistre.otf") format("otf"),
     url("./fonts/sinistre.woff") format("woff");
 }
-
-#root {
-  z-index: 99999;
-}
-iframe {
-  z-index: 0;
+video::-webkit-media-controls-fullscreen-button {
   display: none;
 }
+#root,
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
 :root {
   --mainColor: black;
   --detailColor: #00ff00;
@@ -23,13 +26,24 @@ p {
   margin: 2px 0px 2px 0px;
   color: var(--mainColor);
   font-family: sinistre;
+  font-size: 15px;
+}
+
+video {
+  object-fit: cover;
 }
 
 .container {
+  border: 2px solid black;
   padding: 5px;
   margin: 5px;
-  border: 2px solid black;
-  border-radius: 25px;
+}
+.containerframe {
+  border-right: 2px solid black;
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 5px;
+  margin: 5px;
 }
 
 .outer-container {
@@ -44,7 +58,7 @@ p {
 }
 
 .container-ish {
-  padding: 0px 5px 5px 5px;
+  padding: 5px 5px 5px 5px;
   margin: 5px;
 }
 
@@ -57,7 +71,7 @@ p {
   min-width: 250px;
   position: absolute;
   right: 0;
-  top: 0;
+  top: 10px;
   bottom: 0;
 }
 .userContainer {
@@ -146,4 +160,22 @@ p {
   padding: 5px;
   display: flex;
   flex-direction: column;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  display: none;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  display: none;
+}
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+  display: none;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+  display: none;
 }

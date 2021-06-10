@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState } from "react";
+import React, { Suspense, useRef, useState, useEffect } from "react";
 import { Canvas, useLoader, useFrame, useThree } from "@react-three/fiber";
 
 import { Control } from "../playground/Player";
@@ -16,8 +16,14 @@ import {
 import { useReflector } from "../functions/use-reflector";
 import usePostprocessing from "../functions/use-postprocessing";
 
-import { TextureLoader, WebGLCubeRenderTarget } from "three";
+import {
+  TextureLoader,
+  WebGLCubeRenderTarget,
+  AudioListener,
+  AudioLoader,
+} from "three";
 
+import Stream from "../Broadcast/Stream";
 softShadows();
 
 function RSphere(props) {
@@ -54,8 +60,6 @@ function randomIntFromInterval(min, max) {
 function Cubes({ imageUrls, material }) {
   const ref = useRef();
 
-  console.log("renders cubes");
-
   return imageUrls.map((imageUrl, index) => (
     <mesh
       key={index}
@@ -68,11 +72,7 @@ function Cubes({ imageUrls, material }) {
       castShadow
       receiveShadow
     >
-      <boxBufferGeometry
-        attach="geometry"
-        args={[5, 5, 5]}
-        material={material}
-      />
+      <boxBufferGeometry attach="geometry" args={[5, 5, 5]} color="white" />
       <Suspense fallback={null}>
         <ImageTextureMaterial imageUrl={imageUrl} material={material} />
       </Suspense>
@@ -82,6 +82,7 @@ function Cubes({ imageUrls, material }) {
 
 const ImageTextureMaterial = (imageUrl, material) => {
   const texture = useLoader(TextureLoader, imageUrl.imageUrl);
+
   return (
     <meshStandardMaterial
       attach="material"
@@ -93,11 +94,9 @@ const ImageTextureMaterial = (imageUrl, material) => {
   );
 };
 
-function Scene(props) {
-  const material = useRef();
+function Lights() {
   const lightRef = useRef();
   const lightRef1 = useRef();
-  const groupRef = useRef();
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime() * 0.5;
@@ -110,46 +109,10 @@ function Scene(props) {
 
       lightRef1.current.position.y = Math.sin(t) * 50;
     }
-
-    if (groupRef.current) {
-      groupRef.current.children.forEach((element) => {
-        element.rotation.x = Math.sin(t) * 0.05;
-        element.rotation.y = Math.sin(t) * 0.05;
-        element.rotation.z = Math.sin(t) * 0.05;
-      });
-    }
   });
 
-  const [meshRef, ReflectorMaterial, passes] = useReflector();
-  usePostprocessing(passes);
-
   return (
-    <group position-z={-5}>
-      <group ref={groupRef}>
-        <Cubes imageUrls={props.props.imageUrls} material={material.current} />
-      </group>
-
-      <mesh
-        receiveShadow
-        ref={meshRef}
-        rotation-x={-Math.PI / 2}
-        position-y={-3.001}
-      >
-        <planeBufferGeometry
-          receiveShadow
-          attach="geometry"
-          args={[300, 300]}
-        />
-
-        <ReflectorMaterial
-          metalness={0.8}
-          roughness={0.3}
-          clearcoat={0.5}
-          reflectorOpacity={0.3}
-          args={[300, 300]}
-        />
-      </mesh>
-
+    <>
       <spotLight
         ref={lightRef}
         position={[20, 20, 10]}
@@ -173,62 +136,214 @@ function Scene(props) {
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
+    </>
+  );
+}
 
-      <Physics gravity={[0, 0, 0]}>
-        <Control />
-      </Physics>
+function StreamBoxes() {
+  const [video] = useState(() => {
+    const vid = document
+      .getElementById("video")
+      .getElementsByTagName("video")[0];
+    vid.crossOrigin = "Anonymous";
+    return vid;
+  });
+  const { camera } = useThree();
+
+  const groupRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      groupRef.current.position.set(
+        camera.position.x,
+        camera.position.y,
+        camera.position.z
+      );
+      groupRef.current.rotation.y += 0.008;
+    }
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      position={[camera.position.x, camera.position.y, camera.position.z]}
+    >
+      <mesh position={[0, 3, 33]}>
+        <boxBufferGeometry
+          args={[10, 9, 0.1]}
+          rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 2]}
+        />
+        <meshBasicMaterial>
+          <videoTexture attach="map" args={[video]} />
+        </meshBasicMaterial>
+      </mesh>
+
+      <mesh position={[20, 7, 0]}>
+        <boxBufferGeometry args={[0.1, 5, 6]} rotation={[Math.PI / 2, 0, 0]} />
+        <meshBasicMaterial>
+          <videoTexture attach="map" args={[video]} />
+        </meshBasicMaterial>
+      </mesh>
+
+      <mesh position={[-10, 15, -5]}>
+        <boxBufferGeometry args={[7, 0.1, 6]} rotation={[Math.PI / 2, 0, 0]} />
+        <meshBasicMaterial>
+          <videoTexture attach="map" args={[video]} />
+        </meshBasicMaterial>
+      </mesh>
     </group>
   );
 }
 
-export default function ContentRedistributionCanvas(imageUrls, stream) {
-  console.log("renders canvas");
+function Floor() {
+  const [meshRef, ReflectorMaterial, passes] = useReflector();
+  usePostprocessing(passes);
   return (
-    <>
-      <Canvas
-        id="canvas"
-        concurrent
-        colorManagement
-        shadowMap={true}
-        RGB
-        camera={{ position: [0, 0, 10], far: 100, near: 0.1, fov: 60 }}
-        gl={{
-          powerPreference: "high-performance",
-          alpha: false,
-          antialias: false,
-          stencil: false,
-          depth: false,
-        }}
-        style={{
-          background: "radial-gradient(#00ff04, pink, white)",
-          position: "fixed",
-          top: "0",
-          bottom: "0",
-          right: "0",
-          left: "0",
-          zIndex: "-9999",
-        }}
+    <group position-z={-5}>
+      <mesh
+        receiveShadow
+        ref={meshRef}
+        rotation-x={-Math.PI / 2}
+        position-y={-3.001}
       >
-        <Suspense fallback={null}>
+        <planeBufferGeometry
+          receiveShadow
+          attach="geometry"
+          args={[300, 300]}
+        />
+
+        <ReflectorMaterial
+          metalness={0.8}
+          roughness={0.3}
+          clearcoat={0.5}
+          reflectorOpacity={0.3}
+          args={[300, 300]}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function Sound({ url }) {
+  const sound = useRef();
+  const { camera } = useThree();
+  const [listener] = useState(() => new AudioListener());
+  const buffer = useLoader(AudioLoader, url);
+  useEffect(() => {
+    sound.current.setBuffer(buffer);
+    sound.current.setRefDistance(1);
+    sound.current.setLoop(true);
+    sound.current.play();
+    camera.add(listener);
+    return () => camera.remove(listener);
+  });
+  return <positionalAudio ref={sound} args={[listener]} />;
+}
+
+function Boxes(props) {
+  const groupRef = useRef();
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() * 0.5;
+
+    if (groupRef.current) {
+      groupRef.current.children.forEach((element) => {
+        element.rotation.x = Math.sin(t) * 0.05;
+        element.rotation.y = Math.sin(t) * 0.05;
+        element.rotation.z = Math.sin(t) * 0.05;
+      });
+    }
+  });
+
+  return (
+    <group position-z={-5}>
+      <group ref={groupRef}>
+        <Cubes imageUrls={props.props} />
+      </group>
+    </group>
+  );
+}
+
+export default class ContentRedistributionCanvas extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      imageUrls: this.props.imageUrls,
+      hasStream: this.props.hasStream,
+    };
+  }
+
+  componentDidMount() {
+    console.log("canvas did mount", this.props.imageUrls.length);
+  }
+  componentDidUpdate() {
+    console.log("canvas did update", this.props.imageUrls.length);
+  }
+  shouldComponentUpdate(nextProps, nextState) {
+    if (
+      this.props.imageUrls.length !== nextProps.imageUrls.length ||
+      this.props.loggedIn !== nextProps.loggedIn ||
+      this.state.hasStream !== nextState.hasStream
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  callbackFunction = () => {
+    this.setState({ hasStream: true });
+  };
+
+  render() {
+    return (
+      <>
+        {this.props.loggedIn && (
+          <Stream callbackFunction={this.callbackFunction} />
+        )}
+
+        <Canvas
+          id="canvas"
+          colorManagement
+          shadowMap={true}
+          camera={{ position: [0, 0, 10], far: 100, near: 0.1, fov: 60 }}
+          resize={{ debounce: { scroll: 0, resize: 0 } }}
+          invalidateFrameloop={true}
+          gl={{
+            powerPreference: "high-performance",
+            antialias: false,
+            alpha: false,
+          }}
+          style={{
+            background: "black",
+            position: "fixed",
+            top: "0",
+            bottom: "0",
+            right: "0",
+            left: "0",
+            zIndex: "0",
+          }}
+        >
+          <Floor />
+
+          <Boxes props={this.state.imageUrls} />
+
           <fogExp2 attach="fog" args={[0xbffffd, 0.049]} />
-          <Sky
-            distance={450000} // Camera distance (default=450000)
-            sunPosition={[0, 10, 0]} // Sun position normal (defaults to inclination and azimuth if not set)
-            inclination={1} // Sun elevation angle from 0 to 1 (default=0)
-            azimuth={0.25}
-          />
 
           <ambientLight intensity={0.3} />
 
-          <Scene props={imageUrls} />
+          <Suspense fallback={null}>
+            <Sound url="https://res.cloudinary.com/www-houseofkilling-com/video/upload/v1620900008/sounds/AliveForever_clhtnw.mp3" />
 
-          <RSphere position={[10, 0, 10]} args={[7, 32, 32]} />
+            <RSphere position={[10, 0, 10]} args={[7, 32, 32]} />
 
-          <RSphere position={[-70, 5, 20]} args={[3, 32, 32]} />
+            <RSphere position={[-70, 5, 20]} args={[3, 32, 32]} />
 
-          <RSphere position={[50, 10, -40]} args={[10, 32, 32]} />
+            <RSphere position={[50, 10, -40]} args={[10, 32, 32]} />
 
-          <RSphere position={[0, 0, 0]} args={[50, 32, 32]} />
+            <RSphere position={[0, 0, 0]} args={[50, 32, 32]} />
+          </Suspense>
+
           <Environment files="vr_landscape.hdr" background={false} />
 
           <Fireflies count={500} position={[0, 0, 0]} />
@@ -236,9 +351,24 @@ export default function ContentRedistributionCanvas(imageUrls, stream) {
           <Fireflies count={500} position={[-50, 0, 0]} />
 
           <Fireflies count={500} position={[-50, 0, 20]} />
-        </Suspense>
-      </Canvas>
-      <Loader />
-    </>
-  );
+
+          <Physics gravity={[0, 0, 0]}>
+            <Control />
+          </Physics>
+
+          <Lights />
+
+          {this.state.hasStream && <StreamBoxes />}
+
+          <Sky
+            distance={450000} // Camera distance (default=450000)
+            sunPosition={[0, 10, 0]} // Sun position normal (defaults to inclination and azimuth if not set)
+            inclination={1} // Sun elevation angle from 0 to 1 (default=0)
+            azimuth={0.25}
+          />
+        </Canvas>
+        <Loader dataInterpolation={(p) => `waking up ${p.toFixed(5)}%`} />
+      </>
+    );
+  }
 }

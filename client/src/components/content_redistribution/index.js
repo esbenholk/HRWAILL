@@ -1,141 +1,196 @@
-import React, { useEffect, useState, Suspense } from "react";
+import React, { Suspense, useCallback, useState, useRef } from "react";
 import ContentRedistributionCanvas from "./canvas";
+import Dropzone from "react-dropzone";
 
-import SongPlayer from "./MusicPlayer";
+// import SongPlayer from "./MusicPlayer";
+// <SongPlayer audioUrl="https://res.cloudinary.com/www-houseofkilling-com/video/upload/v1620900008/sounds/AliveForever_clhtnw.mp3" />
 
-const URL = "https://hok-studio-backend.herokuapp.com";
+function MyDropzone(props) {
+  const [message, setMessage] = useState(
+    "Drag 'n' drop some files here, or click to select files"
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
-export default function ContentRedistribution(props) {
-  const [imageUrls, setImageUrls] = useState([]);
-  const [hasNewImage, setHasNewImage] = useState(true);
-  const [previewSource, setPreviewSource] = useState("");
+  const inputField = useRef();
 
-  const loadImages = async () => {
-    console.log("loading images");
+  const handleDrop = useCallback(
+    (acceptedFiles) => {
+      if (acceptedFiles[0]) {
+        const reader = new FileReader();
+
+        reader.readAsDataURL(acceptedFiles[0]);
+        reader.onloadstart = () => {
+          console.log("loads file");
+          setMessage("loading file:");
+          setIsLoading(true);
+        };
+        reader.onloadend = () => {
+          console.log("has file");
+          props.uploadImage(reader.result);
+
+          if (reader.error) {
+            setMessage("that didnt go according to plan");
+          } else {
+            setTimeout(() => {
+              setMessage("thank you for your expression. i love it");
+              setTimeout(() => {
+                setMessage(
+                  "Drag 'n' drop some files here, or click to select files"
+                );
+                setIsLoading(false);
+              }, 2000);
+              setIsLoading(false);
+            }, 1000);
+          }
+        };
+      }
+    },
+    [props]
+  );
+
+  return (
+    <Dropzone
+      onDrop={handleDrop}
+      accept="image/*"
+      minSize={1024}
+      maxSize={3072000}
+      className="container"
+    >
+      {({ getRootProps, getInputProps }) => (
+        <div
+          {...getRootProps({ className: "dropzone" })}
+          style={{ width: "100%", height: "100%" }}
+          ref={inputField}
+        >
+          <input {...getInputProps()} />
+          {!isLoading ? (
+            <p
+              style={{
+                fontSize: "30px",
+                color: "white",
+                backgroundColor: "black",
+              }}
+            >
+              {message}
+            </p>
+          ) : (
+            <p>is loading</p>
+          )}
+        </div>
+      )}
+    </Dropzone>
+  );
+}
+
+export default class ContentRedistribution extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      imageUrls: [],
+      hasNewImage: true,
+      previewSource: "",
+      hasBroadcast: false,
+    };
+  }
+
+  componentDidMount() {
+    this.loadImages();
+    this.setState({ hasNewImage: false });
+
+    this.props.socket.on("message", (data) => {
+      if (data.newImage) {
+        if (!this.state.imageUrls.includes(data.newImage)) {
+          this.setState({
+            imageUrls: [...this.state.imageUrls, data.newImage],
+          });
+        }
+      }
+      if (data.broadcast) {
+        console.log("has broadcast", data);
+        this.setState({
+          hasBroadcast: true,
+        });
+      }
+    });
+  }
+
+  loadImages = async () => {
     try {
       const res = await fetch("/api/getallimages");
-
       const data = await res.json();
-      setImageUrls(data.images);
+      this.setState({ imageUrls: data.images });
     } catch (error) {
       console.error("this is the output error", error);
     }
   };
 
-  useEffect(() => {
-    loadImages();
-    setHasNewImage(false);
-  }, [hasNewImage]);
-
-  const handleFileInputChange = (e) => {
+  handleFileInputChange = (e) => {
     const file = e.target.files[0];
-    previewFile(file);
+    console.log(file);
+    this.previewFile(file);
   };
 
-  const previewFile = (file) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = () => {
-      setPreviewSource(reader.result);
-    };
-  };
-
-  const handleSubmitFile = (e) => {
-    e.preventDefault();
-    if (!previewSource) return;
-    uploadImage(previewSource);
-  };
-
-  const uploadImage = async (base64EncodedImage) => {
+  uploadImage = async (base64EncodedImage) => {
     try {
-      await fetch("/api/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
         body: JSON.stringify({ data: base64EncodedImage }),
         headers: { "Content-type": "application/json" },
       });
-      setHasNewImage(true);
-      setPreviewSource("");
+      const data = await res.json();
+
+      console.log("succesful upload", data);
+
+      this.setState({ hasNewImage: true, previewSource: "" });
+
+      this.props.socket.emit("uploadImage", { data }, (error) => {});
     } catch (error) {
       console.error(error);
     }
   };
 
-  const stream = props.stream;
+  render() {
+    return (
+      <>
+        {this.state.imageUrls.length > 1 ? (
+          <Suspense fallback={null}>
+            <ContentRedistributionCanvas
+              imageUrls={this.state.imageUrls}
+              loggedIn={this.props.loggedIn}
+              hasBroadcast={this.state.hasBroadcast}
+            />
+          </Suspense>
+        ) : null}
 
-  console.log("renders canvas container");
-
-  return (
-    <div className="content-container">
-      <Suspense fallback={null}>
-        <ContentRedistributionCanvas imageUrls={imageUrls} />
-      </Suspense>
-
-      {props.loggedIn && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: "2",
-            bottom: "0",
-            width: "65%",
-            left: "0",
-            display: "flex",
-            flexFlow: "row",
-            alignItems: "flex-end",
-          }}
-          className="container-ish"
-        >
-          <div
-            style={{
-              maxWidth: "300px",
-              flexGrow: "1",
-              position: "relative",
-              borderTop: "2px solid black",
-              borderRight: "2px solid black",
-            }}
-            className="flex-column"
-          >
-            <p
+        {this.props.loggedIn && (
+          <>
+            <div
               style={{
                 position: "absolute",
-                bottom: "105%",
-                margin: "0",
+                bottom: "0",
                 left: "0",
-                textAlign: "left",
+                display: "flex",
+                flexFlow: "column-reverse",
+                zIndex: "99999999999",
+                height: "150px",
+                width: "250px",
               }}
+              className="container"
             >
-              {" "}
-              Feed me a jpeg
-            </p>
-            <form onSubmit={handleSubmitFile} className="flex-column">
-              <input
-                type="file"
-                name="file"
-                placeholder="Upload an Image"
-                onChange={handleFileInputChange}
+              <p
                 style={{
-                  marginTop: "20px",
-                  marginBottom: "20px",
-                  display: "flex",
-                  flexFlow: "row-reverse",
+                  position: "absolute",
+                  bottom: "105%",
+                  fontSize: "15px",
                 }}
-                className="custom-file-input"
-              ></input>
-              {previewSource && (
-                <img
-                  src={previewSource}
-                  alt={previewSource}
-                  style={{ width: "100%" }}
-                />
-              )}
-              <button className="sendButton" type="submit">
-                UPLOAD
-              </button>
-            </form>
-          </div>
-
-          <SongPlayer audioUrl="https://res.cloudinary.com/www-houseofkilling-com/video/upload/v1620900008/sounds/AliveForever_clhtnw.mp3" />
-        </div>
-      )}
-    </div>
-  );
+              >
+                Feed me expressions plz
+              </p>
+              <MyDropzone uploadImage={this.uploadImage} />
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
 }
