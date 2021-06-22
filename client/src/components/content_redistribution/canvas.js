@@ -6,13 +6,7 @@ import { Physics } from "@react-three/cannon";
 
 import Fireflies from "../functions/fireflies";
 
-import {
-  softShadows,
-  Loader,
-  Environment,
-  useGLTF,
-  MeshWobbleMaterial,
-} from "@react-three/drei";
+import { softShadows, Loader, Environment, useGLTF } from "@react-three/drei";
 
 import { useReflector } from "../functions/use-reflector";
 import usePostprocessing from "../functions/use-postprocessing";
@@ -21,40 +15,14 @@ import Stacy from "./stacy";
 
 import {
   TextureLoader,
-  WebGLCubeRenderTarget,
   AudioListener,
   AudioLoader,
   Mesh,
+  DoubleSide,
 } from "three";
 
 import Stream from "../Broadcast/Stream";
 softShadows();
-
-function RSphere(props) {
-  const camera = useRef();
-  const { scene, gl } = useThree();
-  const [cubeRenderTarget] = useState(() => new WebGLCubeRenderTarget(256));
-  useFrame(() => camera.current.update(gl, scene));
-  return (
-    <mesh position={props.position}>
-      <cubeCamera ref={camera} args={[1, 1000, cubeRenderTarget]} />
-      <mesh>
-        <sphereBufferGeometry args={props.args} />
-        <MeshWobbleMaterial
-          attach="material"
-          color="black"
-          envMap={cubeRenderTarget.texture}
-          factor={2} // Strength, 0 disables the effect (default=1)
-          speed={0.6} // Speed (default=1)
-          roughness={0}
-          metalness={10}
-          distort={0}
-          side={2}
-        />
-      </mesh>
-    </mesh>
-  );
-}
 
 function randomIntFromInterval(min, max) {
   // min and max included
@@ -69,9 +37,9 @@ function Cubes({ imageUrls, material }) {
       key={index}
       ref={ref}
       position={[
-        randomIntFromInterval(-50, 50),
+        randomIntFromInterval(-120, 120),
         Math.floor(Math.random() * 10),
-        randomIntFromInterval(-50, 50),
+        randomIntFromInterval(-120, 120),
       ]}
       castShadow
       receiveShadow
@@ -93,6 +61,7 @@ const ImageTextureMaterial = (imageUrl) => {
       roughness={1}
       color="white"
       map={texture}
+      side={DoubleSide}
     />
   );
 };
@@ -148,8 +117,10 @@ function StreamBoxes() {
     const vid = document
       .getElementById("video")
       .getElementsByTagName("video")[0];
-    vid.crossOrigin = "Anonymous";
-    return vid;
+    if (vid) {
+      vid.crossOrigin = "Anonymous";
+      return vid;
+    }
   });
   const { camera } = useThree();
 
@@ -166,36 +137,55 @@ function StreamBoxes() {
     }
   });
 
-  return (
-    <group
-      ref={groupRef}
-      position={[camera.position.x, camera.position.y, camera.position.z]}
-    >
-      <mesh position={[0, 3, 33]}>
-        <boxBufferGeometry
-          args={[10, 9, 0.1]}
-          rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 2]}
-        />
-        <meshBasicMaterial>
-          <videoTexture attach="map" args={[video]} />
-        </meshBasicMaterial>
-      </mesh>
+  if (video) {
+    return (
+      <>
+        <group
+          ref={groupRef}
+          position={[camera.position.x, camera.position.y, camera.position.z]}
+        >
+          <mesh position={[0, 3, 33]}>
+            <boxBufferGeometry
+              args={[10, 9, 0.1]}
+              rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 2]}
+            />
+            <meshBasicMaterial>
+              <videoTexture attach="map" args={[video]} />
+            </meshBasicMaterial>
+          </mesh>
 
-      <mesh position={[20, 7, 0]}>
-        <boxBufferGeometry args={[0.1, 5, 6]} rotation={[Math.PI / 2, 0, 0]} />
-        <meshBasicMaterial>
-          <videoTexture attach="map" args={[video]} />
-        </meshBasicMaterial>
-      </mesh>
+          <mesh position={[20, 7, 0]}>
+            <boxBufferGeometry
+              args={[0.1, 5, 6]}
+              rotation={[Math.PI / 2, 0, 0]}
+            />
+            <meshBasicMaterial>
+              <videoTexture attach="map" args={[video]} />
+            </meshBasicMaterial>
+          </mesh>
 
-      <mesh position={[-10, 15, -5]}>
-        <boxBufferGeometry args={[7, 0.1, 6]} rotation={[Math.PI / 2, 0, 0]} />
-        <meshBasicMaterial>
-          <videoTexture attach="map" args={[video]} />
-        </meshBasicMaterial>
-      </mesh>
-    </group>
-  );
+          <mesh position={[-10, 15, -5]}>
+            <boxBufferGeometry
+              args={[7, 0.1, 6]}
+              rotation={[Math.PI / 2, 0, 0]}
+            />
+            <meshBasicMaterial>
+              <videoTexture attach="map" args={[video]} />
+            </meshBasicMaterial>
+          </mesh>
+        </group>
+
+        <mesh position={[0, 30, 0]}>
+          <boxBufferGeometry args={[0.1, 20, 40]} rotation={[0, 20, 0]} />
+          <meshBasicMaterial>
+            <videoTexture attach="map" args={[video]} />
+          </meshBasicMaterial>
+        </mesh>
+      </>
+    );
+  } else {
+    return null;
+  }
 }
 
 function Floor() {
@@ -288,7 +278,7 @@ const Model = () => {
   }, [gltf]);
 
   return gltf ? (
-    <group position={[70, -2.3, 70]}>
+    <group position={[70, -2.3, 70]} rotation={[0, (Math.PI / 2) * 3, 0]}>
       <primitive ref={ref} object={gltf.scene} />
       <Stacy pose={1} position={[0, 0, 0]} />
     </group>
@@ -324,6 +314,7 @@ export default class ContentRedistributionCanvas extends React.Component {
 
   callbackFunction = () => {
     this.setState({ hasStream: true });
+    console.log("sets stream to true");
   };
 
   render() {
@@ -337,7 +328,7 @@ export default class ContentRedistributionCanvas extends React.Component {
           id="canvas"
           colorManagement
           shadowMap={true}
-          camera={{ position: [0, 0, 10], far: 170, near: 0.1, fov: 100 }}
+          camera={{ position: [0, 1, 10], far: 170, near: 0.1, fov: 100 }}
           resize={{ debounce: { scroll: 0, resize: 0 } }}
           invalidateFrameloop={true}
           gl={{
@@ -365,7 +356,7 @@ export default class ContentRedistributionCanvas extends React.Component {
             <Sound url="https://res.cloudinary.com/www-houseofkilling-com/video/upload/v1620900008/sounds/AliveForever_clhtnw.mp3" />
           </Suspense>
 
-          <Environment files="vr_landscape.hdr" background={true} />
+          <Environment files="collage.hdr" background={true} />
 
           <Fireflies count={500} position={[0, 0, 0]} />
 
@@ -385,38 +376,66 @@ export default class ContentRedistributionCanvas extends React.Component {
           >
             <boxBufferGeometry
               attach="geometry"
-              args={[21, 21, 3]}
+              args={[40, 40, 40]}
               color="white"
             />
-            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/c_scale,w_315/v1624263178/textures/Artboard_20_rasqma.png" />
           </mesh>
 
           <mesh
-            position={[-70, 0, 40]}
+            position={[-90, 0, 40]}
             rotation={[0, Math.PI / 2, Math.PI / 3]}
             castShadow
             receiveShadow
           >
             <boxBufferGeometry
               attach="geometry"
-              args={[21, 21, 3]}
+              args={[45, 45, 45]}
               color="white"
             />
-            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/c_scale,w_361/v1624263162/textures/Artboard_4_oc8m0v.png" />
           </mesh>
 
           <mesh
-            position={[80, 30, 100]}
-            rotation={[0, Math.PI / 2, Math.PI / 3]}
+            position={[130, 20, 140]}
+            rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 3]}
             castShadow
             receiveShadow
           >
             <boxBufferGeometry
               attach="geometry"
-              args={[50, 100, 3]}
+              args={[100, 100, 100]}
               color="white"
             />
-            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623336853/textures/Artboard_8explosion_vcdoob.png" />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/c_scale,w_338/v1624263172/textures/Artboard_13_sifhhu.png" />
+          </mesh>
+
+          <mesh
+            position={[-120, 20, -120]}
+            rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 3]}
+            castShadow
+            receiveShadow
+          >
+            <boxBufferGeometry
+              attach="geometry"
+              args={[100, 100, 100]}
+              color="white"
+            />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/c_scale,w_372/v1624263715/textures/Artboard_5explosion_rpkdlq.png" />
+          </mesh>
+
+          <mesh
+            position={[0, 60, -90]}
+            rotation={[1, Math.PI / 2, Math.PI / 3]}
+            castShadow
+            receiveShadow
+          >
+            <boxBufferGeometry
+              attach="geometry"
+              args={[100, 100, 100]}
+              color="white"
+            />
+            <ImageTextureMaterial imageUrl="https://res.cloudinary.com/www-houseofkilling-com/image/upload/c_scale,w_383/v1624263172/textures/Artboard_9_zq7vvq.png" />
           </mesh>
           <Lights />
 

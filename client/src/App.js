@@ -7,13 +7,16 @@ import "./App.css";
 
 import { BrowserRouter as Router, Route } from "react-router-dom";
 
-import Broadcast from "./components/Broadcast/Broadcast.js";
-
 import io from "socket.io-client";
 
 const ENDPOINT = "https://stayvirtual-chat-backend.herokuapp.com/";
 
 const socket = io(ENDPOINT);
+
+const recording = false;
+
+const INTRO_Text =
+  "www.stayvirtual.online** softly introduces  \n THE HRWAILL ARCHIVE of Human Expression* Your semi-sentient 3D dataset \ncreated by Esben Holk @ HOUSE OF KILLING  \n with music by Sophie Harkins and Font by Jules Durand \n\nEnter with your name to share your jpgs with HRWAILL   ";
 
 const App = () => {
   const [name, setName] = useState();
@@ -40,15 +43,26 @@ const App = () => {
   return (
     <Router>
       <Route path="/" exact>
-        {!loggedIn && (
+        {!loggedIn && !recording ? (
           <>
             <div className="outer-container" style={{ zIndex: "1" }}>
-              <div className="circletype-container">
-                <p id="circletype">
-                  www.stayvirtual.online** softly introduces H r w a i l Archive
-                  of Human Expression* ·{" "}
-                </p>
-              </div>
+              <img
+                style={{ height: "200px", objectFit: "contain" }}
+                id="logo"
+                src="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623355136/textures/logo_y5vsqo.png"
+                alt="HRWAILL_icon"
+              />
+
+              <p
+                style={{
+                  whiteSpace: "pre-wrap",
+                  fontSize: "12px",
+                  textAlign: "center",
+                }}
+              >
+                {INTRO_Text}
+              </p>
+
               <div className="container">
                 <input
                   placeholder="Name"
@@ -71,10 +85,15 @@ const App = () => {
             </div>
             <p>
               * a generative encyclopedia of images as expressions. <br></br>
-              ** an open source landscape <br></br> + live chat
+              ** an open source landscape <br></br> + live chat <br></br>
+              created by Esben Holk @{" "}
+              <a href="http://beta.houseofkilling.com/"> HOUSE OF KILLING</a>
+              <br></br>
+              with music by Sophie Harkins and Font by{" "}
+              <a href="https://www.julesdurand.xyz/">Jules Durand</a>
             </p>
           </>
-        )}
+        ) : null}
 
         <Suspense fallback={null}>
           <ContentRedistribution
@@ -86,12 +105,12 @@ const App = () => {
           <Chat socket={socket} loggedIn={loggedIn} name={name} myID={myID} />
         </Suspense>
       </Route>
-
-      <Route path="/broadcast" exact>
-        <Broadcast socket={socket} />
-      </Route>
     </Router>
   );
 };
 
 export default App;
+
+// <Route path="/broadcast" exact>
+// <Broadcast socket={socket} />
+// </Route>

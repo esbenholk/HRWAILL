@@ -3,23 +3,24 @@ import ReactPlayer from "react-player";
 const streamUrl =
   "https://9080d9c066cb.eu-west-1.playback.live-video.net/api/video/v1/eu-west-1.554958627116.channel.DTf3HzFPw6Tl.m3u8";
 
+const isStreaming = true;
 export default function Stream(props) {
   const [hasStream, setHasStream] = useState(false);
   const stream = useRef();
   useEffect(() => {
     UrlExists(streamUrl);
-    if (stream.current) {
-      props.callbackFunction();
-    }
-  }, [stream, props]);
+  });
 
   function UrlExists(url) {
     var http = new XMLHttpRequest();
     http.open("HEAD", url, false);
     http.send();
     if (http.status !== 404) {
+      console.log("has stream");
       setHasStream(true);
+      props.callbackFunction();
     } else {
+      console.log("does not have stream");
       setHasStream(false);
     }
   }
@@ -39,7 +40,7 @@ export default function Stream(props) {
         flexDirection: "column",
       }}
     >
-      {hasStream ? (
+      {hasStream && isStreaming ? (
         <ReactPlayer
           ref={stream}
           url={streamUrl}
@@ -47,13 +48,15 @@ export default function Stream(props) {
           height="105%"
           playing
           controls
+          playsinline
           disablePictureInPicture
           id="video"
         />
       ) : (
         <img
           style={{ height: "100%", objectFit: "contain" }}
-          src="https://res.cloudinary.com/www-houseofkilling-com/image/upload/w_1000,ar_1:1,c_fill,g_auto,e_art:hokusai/v1622725933/contentRedistribution/hrwail1_zgguct.png"
+          id="logo"
+          src="https://res.cloudinary.com/www-houseofkilling-com/image/upload/v1623355136/textures/logo_y5vsqo.png"
           alt="HRWAILL_icon"
         />
       )}

@@ -13,7 +13,6 @@ import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils";
 export default function Stacy({ pose, ...props }) {
   // Fetch model and a separate texture
   const { scene, animations } = useGLTF("/stacy.glb");
-  console.log(scene, animations);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { nodes } = useGraph(clone);
 
@@ -65,6 +64,4 @@ export default function Stacy({ pose, ...props }) {
   );
 }
 
-{
-  /* <Stacy pose={4} position={[0, 0, 0]} /> */
-}
+/* <Stacy pose={4} position={[0, 0, 0]} /> */

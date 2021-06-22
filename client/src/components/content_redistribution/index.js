@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useState, useRef } from "react";
+import React, { Suspense, useCallback, useState } from "react";
 import ContentRedistributionCanvas from "./canvas";
 import Dropzone from "react-dropzone";
 
@@ -7,40 +7,44 @@ import Dropzone from "react-dropzone";
 
 function MyDropzone(props) {
   const [message, setMessage] = useState(
-    "Drag 'n' drop some files here, or click to select files"
+    "Drag 'n' drop some files here, \nor click to select files"
   );
   const [isLoading, setIsLoading] = useState(false);
-
-  const inputField = useRef();
+  const [dropZoneClass, setDropZoneClass] = useState("dropzone-basic");
 
   const handleDrop = useCallback(
     (acceptedFiles) => {
       if (acceptedFiles[0]) {
         const reader = new FileReader();
 
+        console.log("accptedfile", acceptedFiles[0].previewElement);
+
         reader.readAsDataURL(acceptedFiles[0]);
         reader.onloadstart = () => {
-          console.log("loads file");
           setMessage("loading file:");
           setIsLoading(true);
+          setDropZoneClass("dropzone-loading");
         };
         reader.onloadend = () => {
-          console.log("has file");
-          props.uploadImage(reader.result);
-
           if (reader.error) {
             setMessage("that didnt go according to plan");
           } else {
+            props.uploadImage(reader.result);
             setTimeout(() => {
-              setMessage("thank you for your expression. i love it");
+              setMessage(
+                "thank you for your expression. \nI love it \nYou and everyone else can find it here in the archive now."
+              );
+              setIsLoading(false);
+              setDropZoneClass("dropzone-succes");
+
               setTimeout(() => {
                 setMessage(
-                  "Drag 'n' drop some files here, or click to select files"
+                  "Drag 'n' drop some files here, \nor click to select files"
                 );
                 setIsLoading(false);
-              }, 2000);
-              setIsLoading(false);
-            }, 1000);
+                setDropZoneClass("dropzone-basic");
+              }, 3000);
+            }, 2000);
           }
         };
       }
@@ -49,36 +53,58 @@ function MyDropzone(props) {
   );
 
   return (
-    <Dropzone
-      onDrop={handleDrop}
-      accept="image/*"
-      minSize={1024}
-      maxSize={3072000}
-      className="container"
+    <div
+      style={{
+        position: "absolute",
+        bottom: "0",
+        left: "0",
+        zIndex: "99999999999",
+        height: "150px",
+        width: "250px",
+      }}
+      className={`container ${dropZoneClass}`}
     >
-      {({ getRootProps, getInputProps }) => (
-        <div
-          {...getRootProps({ className: "dropzone" })}
-          style={{ width: "100%", height: "100%" }}
-          ref={inputField}
-        >
-          <input {...getInputProps()} />
-          {!isLoading ? (
-            <p
-              style={{
-                fontSize: "30px",
-                color: "white",
-                backgroundColor: "black",
-              }}
-            >
-              {message}
-            </p>
-          ) : (
-            <p>is loading</p>
-          )}
-        </div>
-      )}
-    </Dropzone>
+      <p
+        style={{
+          position: "absolute",
+          bottom: "105%",
+          fontSize: "15px",
+        }}
+      >
+        Feed us expressions plz
+      </p>
+      <Dropzone
+        onDrop={handleDrop}
+        accept="image/*"
+        minSize={1024}
+        maxSize={3072000}
+        addRemoveLinks={true}
+        className="container"
+        previewsContainer="dropzone-previews"
+      >
+        {({ getRootProps, getInputProps }) => (
+          <div
+            {...getRootProps({ className: "dropzone" })}
+            style={{ width: "100%", height: "100%" }}
+          >
+            <input {...getInputProps()} />
+            {!isLoading ? (
+              <p
+                style={{
+                  color: "inherit",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {message}
+              </p>
+            ) : (
+              <p>is loading</p>
+            )}
+          </div>
+        )}
+      </Dropzone>
+      <div className="dropzone-previews"></div>
+    </div>
   );
 }
 
@@ -134,7 +160,10 @@ export default class ContentRedistribution extends React.Component {
     try {
       const res = await fetch("/api/upload", {
         method: "POST",
-        body: JSON.stringify({ data: base64EncodedImage }),
+        body: JSON.stringify({
+          data: base64EncodedImage,
+          name: this.props.name,
+        }),
         headers: { "Content-type": "application/json" },
       });
       const data = await res.json();
@@ -164,30 +193,7 @@ export default class ContentRedistribution extends React.Component {
 
         {this.props.loggedIn && (
           <>
-            <div
-              style={{
-                position: "absolute",
-                bottom: "0",
-                left: "0",
-                display: "flex",
-                flexFlow: "column-reverse",
-                zIndex: "99999999999",
-                height: "150px",
-                width: "250px",
-              }}
-              className="container"
-            >
-              <p
-                style={{
-                  position: "absolute",
-                  bottom: "105%",
-                  fontSize: "15px",
-                }}
-              >
-                Feed me expressions plz
-              </p>
-              <MyDropzone uploadImage={this.uploadImage} />
-            </div>
+            <MyDropzone uploadImage={this.uploadImage} />
           </>
         )}
       </>

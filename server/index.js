@@ -29,7 +29,7 @@ const app = express();
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "localhost:5000",
+    origin: "https://stayvirtual.online",
     methods: ["GET", "POST"],
   },
 });
@@ -58,21 +58,21 @@ io.on("connect", (socket) => {
     socket.emit("me", socket.id);
 
     socket.emit("message", {
-      user: "Hrwail Archive",
+      user: "HRWAILL Archive",
       text: `Hej, ${capitalizeFirstLetter(
         user.name
-      )}, it's me: the Hrwail Archive of Human Expressions :( :) welcome to StayVirtual.Online. Good that you came! We need your help`,
+      )}, it's me: the HRWAILL Archive of Human Expressions :( :) welcome to StayVirtual.Online. Good that you came! We need your help`,
     });
 
     setTimeout(function () {
       socket.emit("message", {
-        user: "Hrwail Archive",
+        user: "HRWAILL Archive",
         text: `Will you please feed the me your expresions? I so desperately want to express more `,
       });
     }, 6000);
 
     socket.broadcast.to(room).emit("message", {
-      user: "Hrwail Archive",
+      user: "HRWAILL Archive",
       text: `${user.name} is also here`,
     });
 
@@ -101,7 +101,7 @@ io.on("connect", (socket) => {
 
     if (user) {
       io.to(room).emit("message", {
-        user: "Hrwail Archive",
+        user: "HRWAILL Archive",
         text: `${user.name} left us.`,
       });
       io.to(room).emit("roomData", { room: room, users: getUsersInRoom(room) });
@@ -126,7 +126,7 @@ io.on("connect", (socket) => {
     console.log("image in socket", data.data.newImage);
 
     io.to(room).emit("message", {
-      user: "Hrwail Archive",
+      user: "HRWAILL Archive",
       text: `thats a beautiful jpg, thank u`,
       newImage: data.data.newImage,
     });
@@ -164,8 +164,14 @@ app.get("/api/getallimages", async (req, res) => {
 app.post("/api/upload", async (req, res) => {
   try {
     const fileStr = req.body.data;
+    console.log(req.body.name);
     const uploadRes = await cloudinary.uploader.upload(fileStr, {
       upload_preset: "contentRedistribution",
+      public_id:
+        "file" +
+        Math.random().toString(36).substring(2) +
+        "_from_" +
+        req.body.name,
     });
     res.json({ newImage: uploadRes.url });
   } catch (error) {

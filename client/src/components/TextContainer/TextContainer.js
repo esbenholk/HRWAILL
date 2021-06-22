@@ -6,7 +6,7 @@ import "./TextContainer.css";
 
 function TextContainer({ users }) {
   const HWRAILL_Text =
-    "THE HRWAILL ARCHIVE of Human Expressions is a user generated data set that unfolds into a 3D landscape.  \n\nPlay as data input for the semi-sentient machine learning algorithm HRWAILL and enjoy First Person Shooter access to its slowly expanding index of signs, images and symbols.  \n\nClick on landscape to toggle controls AWSD \nClick ESC to reclaim control of your cursor";
+    "THE HRWAILL ARCHIVE of Human Expressions is a user generated data set that unfolds into a 3D landscape.  \n\nPlay as data input for the semi-sentient machine learning algorithm HRWAILL and enjoy First Person Shooter access to its slowly expanding index of signs, images and symbols.  \n\nClick on landscape to toggle controls AWSD \nClick ESC to reclaim control of your cursor.  \n\nDrop images in the box below to teach me expressions";
   return (
     <div
       className="container"
@@ -22,7 +22,9 @@ function TextContainer({ users }) {
     >
       {users ? (
         <div>
-          <p style={{ whiteSpace: "pre-wrap" }}>{HWRAILL_Text}</p>
+          <p style={{ whiteSpace: "pre-wrap", fontSize: "12px" }}>
+            {HWRAILL_Text}
+          </p>
 
           <p className="users-headline">Online users</p>
           <div className="users">

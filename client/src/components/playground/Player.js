@@ -86,7 +86,7 @@ export const Control = (props) => {
   return (
     <>
       {active ? (
-        <Player position={[camera.position.x, 1, camera.position.y]} />
+        <Player position={[camera.position.x, 5, camera.position.y]} />
       ) : (
         <>
           <OrbitControls
